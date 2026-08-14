@@ -1,7 +1,8 @@
-import Database from "better-sqlite3";
+﻿import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "../config";
+import { SCHEMA_SQL } from "./schema";
 
 const dbDir = path.dirname(path.resolve(config.databasePath));
 if (!fs.existsSync(dbDir)) {
@@ -13,9 +14,7 @@ db.pragma("journal_mode = WAL");
 db.pragma("foreign_keys = ON");
 
 export function runMigrations(): void {
-  const schemaPath = path.join(__dirname, "schema.sql");
-  const schema = fs.readFileSync(schemaPath, "utf-8");
-  db.exec(schema);
+  db.exec(SCHEMA_SQL);
 }
 
 runMigrations();
