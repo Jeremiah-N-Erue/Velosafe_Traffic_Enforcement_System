@@ -1,4 +1,10 @@
-const TOKEN_KEY = "velosafe_token";
+﻿const TOKEN_KEY = "velosafe_token";
+
+// In local dev, Vite proxies "/api" to the backend (see vite.config.ts).
+// In production, the frontend and backend are typically deployed as separate
+// services, so VITE_API_URL must be set at build time to the backend's full
+// URL (e.g. "https://velosafe-backend.onrender.com/api").
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") || "/api";
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -28,7 +34,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   headers.set("Content-Type", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const res = await fetch(`/api${path}`, { ...options, headers });
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
   if (res.status === 204) {
     return undefined as T;
