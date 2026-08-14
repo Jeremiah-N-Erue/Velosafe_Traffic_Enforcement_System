@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
 import { asyncHandler, HttpError } from "../middleware/errorHandler";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireRole } from "../middleware/auth";
 import { violationSchema, violationStatusSchema } from "../validators/schemas";
 import { calculateViolation } from "../lib/violationCalc";
 import { Zone } from "../types";
@@ -105,6 +105,7 @@ violationsRouter.patch(
 
 violationsRouter.delete(
   "/:id",
+  requireRole("admin"),
   asyncHandler(async (req, res) => {
     const result = db.prepare("DELETE FROM violations WHERE id = ?").run(req.params.id);
     if (result.changes === 0) throw new HttpError(404, "Violation not found");

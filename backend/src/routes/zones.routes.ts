@@ -1,13 +1,16 @@
 import { Router } from "express";
 import { db } from "../db";
 import { asyncHandler, HttpError } from "../middleware/errorHandler";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireRole } from "../middleware/auth";
 import { zoneSchema, zoneUpdateSchema } from "../validators/schemas";
 import { Zone } from "../types";
 
 export const zonesRouter = Router();
 
 zonesRouter.use(requireAuth);
+
+// Zone configuration (speed limits, road metadata) is administrative — only
+// admins can create, edit, or remove zones. Operators can still view them.
 
 zonesRouter.get(
   "/",
@@ -28,6 +31,7 @@ zonesRouter.get(
 
 zonesRouter.post(
   "/",
+  requireRole("admin"),
   asyncHandler(async (req, res) => {
     const data = zoneSchema.parse(req.body);
     const result = db
@@ -51,6 +55,7 @@ zonesRouter.post(
 
 zonesRouter.patch(
   "/:id",
+  requireRole("admin"),
   asyncHandler(async (req, res) => {
     const existing = db.prepare("SELECT * FROM zones WHERE id = ?").get(req.params.id) as Zone | undefined;
     if (!existing) throw new HttpError(404, "Zone not found");
@@ -77,6 +82,7 @@ zonesRouter.patch(
 
 zonesRouter.delete(
   "/:id",
+  requireRole("admin"),
   asyncHandler(async (req, res) => {
     const result = db.prepare("DELETE FROM zones WHERE id = ?").run(req.params.id);
     if (result.changes === 0) throw new HttpError(404, "Zone not found");

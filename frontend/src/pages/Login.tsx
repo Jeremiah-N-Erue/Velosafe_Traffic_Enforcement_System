@@ -6,8 +6,8 @@ import { ApiError } from "../api/client";
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("admin123");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -52,10 +52,6 @@ export default function Login() {
             {submitting ? "Signing in…" : "Sign in"}
           </button>
         </form>
-
-        <div className="login-hint">
-          Demo accounts — admin: <code>admin / admin123</code> · operator: <code>operator / operator123</code>
-        </div>
       </div>
     </div>
   );

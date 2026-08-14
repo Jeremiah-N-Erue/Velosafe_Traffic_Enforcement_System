@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api, ApiError } from "../api/client";
+import { useAuth } from "../context/AuthContext";
 
 interface Zone {
   id: number;
@@ -13,6 +14,8 @@ interface Zone {
 const ZONE_TYPES = ["school", "residential", "highway", "commercial", "construction"];
 
 export default function Zones() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [zones, setZones] = useState<Zone[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,14 +66,20 @@ export default function Zones() {
           <h1>Speed Zones</h1>
           <p className="page-subtitle">Posted limits and zone metadata</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setFormOpen((v) => !v)}>
-          {formOpen ? "Cancel" : "+ New Zone"}
-        </button>
+        {isAdmin && (
+          <button className="btn btn-primary" onClick={() => setFormOpen((v) => !v)}>
+            {formOpen ? "Cancel" : "+ New Zone"}
+          </button>
+        )}
       </div>
+
+      {!isAdmin && (
+        <p className="page-subtitle">Zone configuration is managed by admins. You have view-only access here.</p>
+      )}
 
       {error && <div className="form-error">{error}</div>}
 
-      {formOpen && (
+      {formOpen && isAdmin && (
         <form className="inline-form" onSubmit={handleCreate}>
           <label>
             Name
@@ -122,7 +131,7 @@ export default function Zones() {
               <th>Type</th>
               <th>Speed limit</th>
               <th>Status</th>
-              <th />
+              {isAdmin && <th />}
             </tr>
           </thead>
           <tbody>
@@ -135,11 +144,13 @@ export default function Zones() {
                 </td>
                 <td>{z.speed_limit_kph} km/h</td>
                 <td>{z.active ? "Active" : "Inactive"}</td>
-                <td>
-                  <button className="btn btn-ghost small" onClick={() => handleDelete(z.id)}>
-                    Delete
-                  </button>
-                </td>
+                {isAdmin && (
+                  <td>
+                    <button className="btn btn-ghost small" onClick={() => handleDelete(z.id)}>
+                      Delete
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
