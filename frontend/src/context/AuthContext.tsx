@@ -6,6 +6,7 @@ export interface AuthUser {
   username: string;
   role: "admin" | "operator";
   display_name: string;
+  can_override_reviews: number;
 }
 
 interface AuthContextValue {

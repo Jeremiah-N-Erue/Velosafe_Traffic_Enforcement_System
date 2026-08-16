@@ -38,6 +38,7 @@ authRouter.post(
         username: user.username,
         role: user.role,
         display_name: user.display_name,
+        can_override_reviews: user.can_override_reviews,
       },
     });
   }),
@@ -48,7 +49,7 @@ authRouter.get(
   requireAuth,
   asyncHandler(async (req, res) => {
     const user = db
-      .prepare("SELECT id, username, role, display_name, created_at FROM users WHERE id = ?")
+      .prepare("SELECT id, username, role, display_name, can_override_reviews, created_at FROM users WHERE id = ?")
       .get(req.user!.sub);
     if (!user) {
       throw new HttpError(404, "User not found");

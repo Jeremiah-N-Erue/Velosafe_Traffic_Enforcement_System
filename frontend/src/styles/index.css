@@ -652,6 +652,96 @@ select:focus {
   flex: 1;
 }
 
+/* Review queue */
+.review-queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.review-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.review-card-loading {
+  color: var(--text-muted);
+  padding: 24px;
+  text-align: center;
+}
+.review-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.review-card-fine {
+  margin-left: auto;
+  font-size: 18px;
+  font-weight: 700;
+}
+.review-card-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: space-between;
+}
+.review-card-body > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--text-muted);
+  min-width: 220px;
+}
+.review-card-body > div:first-child > div:first-child {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 15px;
+}
+.review-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.review-card-actions input {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Evidence */
+.evidence-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.evidence-thumb {
+  width: 160px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated-2);
+}
+.evidence-thumb-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.evidence-missing {
+  color: var(--danger);
+  font-size: 13px;
+  padding: 10px 0;
+}
+
 @media (max-width: 860px) {
   .app-shell {
     flex-direction: column;

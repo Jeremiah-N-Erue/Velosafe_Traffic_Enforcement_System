@@ -7,11 +7,19 @@ import Zones from "./pages/Zones";
 import Vehicles from "./pages/Vehicles";
 import Violations from "./pages/Violations";
 import Incidents from "./pages/Incidents";
+import ReviewQueue from "./pages/ReviewQueue";
+import AdminOversight from "./pages/AdminOversight";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="full-page-loading">Loading VeloSafe…</div>;
   if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  if (user?.role !== "admin") return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -31,6 +39,15 @@ export default function App() {
                 <Route path="/zones" element={<Zones />} />
                 <Route path="/vehicles" element={<Vehicles />} />
                 <Route path="/violations" element={<Violations />} />
+                <Route path="/review" element={<ReviewQueue />} />
+                <Route
+                  path="/oversight"
+                  element={
+                    <AdminRoute>
+                      <AdminOversight />
+                    </AdminRoute>
+                  }
+                />
                 <Route path="/incidents" element={<Incidents />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

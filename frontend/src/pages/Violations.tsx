@@ -1,23 +1,28 @@
 import { FormEvent, useEffect, useState } from "react";
-import { api, ApiError } from "../api/client";
+import { Link } from "react-router-dom";
+import { api, ApiError, fileToBase64 } from "../api/client";
 
 interface Violation {
   id: number;
+  violation_type: "speed" | "red_light";
   plate_number: string;
   zone_name: string;
-  recorded_speed_kph: number;
-  speed_limit_kph: number;
-  over_limit_kph: number;
+  recorded_speed_kph: number | null;
+  speed_limit_kph: number | null;
+  over_limit_kph: number | null;
+  seconds_after_red: number | null;
   severity: string;
   fine_amount: number;
   status: string;
   recorded_at: string;
+  evidence_count: number;
 }
 
 interface Zone {
   id: number;
   name: string;
   speed_limit_kph: number;
+  zone_type: string;
 }
 
 interface Vehicle {
@@ -25,12 +30,20 @@ interface Vehicle {
   plate_number: string;
 }
 
-const STATUSES = ["pending", "issued", "paid", "disputed", "dismissed"];
 const SEVERITIES = ["minor", "moderate", "severe", "extreme"];
+const STATUS_FILTERS = ["pending", "issued", "paid", "disputed", "dismissed"];
 
 function currency(n: number): string {
   return `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
+
+const emptyForm = {
+  violation_type: "speed" as "speed" | "red_light",
+  vehicle_id: "",
+  zone_id: "",
+  recorded_speed_kph: "",
+  seconds_after_red: "",
+};
 
 export default function Violations() {
   const [violations, setViolations] = useState<Violation[]>([]);
@@ -41,7 +54,8 @@ export default function Violations() {
   const [severityFilter, setSeverityFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [formOpen, setFormOpen] = useState(false);
-  const [form, setForm] = useState({ vehicle_id: "", zone_id: "", recorded_speed_kph: "" });
+  const [form, setForm] = useState(emptyForm);
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   function load() {
@@ -63,29 +77,52 @@ export default function Violations() {
     api.get<Vehicle[]>("/vehicles").then(setVehicles).catch(() => {});
   }, []);
 
+  const relevantZones = zones.filter((z) =>
+    form.violation_type === "red_light" ? z.zone_type === "intersection" : z.zone_type !== "intersection",
+  );
+
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
     try {
-      await api.post("/violations", {
-        vehicle_id: Number(form.vehicle_id),
-        zone_id: Number(form.zone_id),
-        recorded_speed_kph: Number(form.recorded_speed_kph),
-      });
-      setForm({ vehicle_id: "", zone_id: "", recorded_speed_kph: "" });
+      if (!evidenceFile) {
+        throw new Error("Photo or video evidence is required to log a violation.");
+      }
+      const dataUrl = await fileToBase64(evidenceFile);
+
+      const payload =
+        form.violation_type === "speed"
+          ? {
+              violation_type: "speed",
+              vehicle_id: Number(form.vehicle_id),
+              zone_id: Number(form.zone_id),
+              recorded_speed_kph: Number(form.recorded_speed_kph),
+              evidence: [{ data: dataUrl, mime_type: evidenceFile.type }],
+            }
+          : {
+              violation_type: "red_light",
+              vehicle_id: Number(form.vehicle_id),
+              zone_id: Number(form.zone_id),
+              seconds_after_red: Number(form.seconds_after_red),
+              evidence: [{ data: dataUrl, mime_type: evidenceFile.type }],
+            };
+
+      await api.post("/violations", payload);
+      setForm(emptyForm);
+      setEvidenceFile(null);
       setFormOpen(false);
       load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Couldn't log violation.");
+      setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Couldn't log violation.");
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function updateStatus(id: number, status: string) {
+  async function markPaid(id: number) {
     try {
-      await api.patch(`/violations/${id}/status`, { status });
+      await api.patch(`/violations/${id}/status`, { status: "paid" });
       load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Couldn't update status.");
@@ -97,9 +134,18 @@ export default function Violations() {
       <div className="page-header">
         <div>
           <h1>Violations</h1>
-          <p className="page-subtitle">Speed violations with automatic severity &amp; fine calculation</p>
+          <p className="page-subtitle">
+            Speed &amp; red-light violations — every new entry requires evidence and starts pending review. See the{" "}
+            <Link to="/review">Review Queue</Link> to approve or reject pending violations.
+          </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setFormOpen((v) => !v)}>
+        <button
+          className="btn btn-primary"
+          onClick={() => {
+            setFormOpen((v) => !v);
+            setError(null);
+          }}
+        >
           {formOpen ? "Cancel" : "+ Log Violation"}
         </button>
       </div>
@@ -108,6 +154,18 @@ export default function Violations() {
 
       {formOpen && (
         <form className="inline-form" onSubmit={handleCreate}>
+          <label>
+            Violation type
+            <select
+              value={form.violation_type}
+              onChange={(e) =>
+                setForm({ ...emptyForm, violation_type: e.target.value as "speed" | "red_light" })
+              }
+            >
+              <option value="speed">Speed</option>
+              <option value="red_light">Red light</option>
+            </select>
+          </label>
           <label>
             Vehicle
             <select
@@ -124,24 +182,48 @@ export default function Violations() {
             </select>
           </label>
           <label>
-            Zone
+            {form.violation_type === "red_light" ? "Intersection" : "Zone"}
             <select required value={form.zone_id} onChange={(e) => setForm({ ...form, zone_id: e.target.value })}>
-              <option value="">Select zone…</option>
-              {zones.map((z) => (
+              <option value="">Select…</option>
+              {relevantZones.map((z) => (
                 <option key={z.id} value={z.id}>
-                  {z.name} ({z.speed_limit_kph} km/h limit)
+                  {z.name}
+                  {form.violation_type === "speed" ? ` (${z.speed_limit_kph} km/h limit)` : ""}
                 </option>
               ))}
             </select>
           </label>
+          {form.violation_type === "speed" ? (
+            <label>
+              Recorded speed (km/h)
+              <input
+                type="number"
+                required
+                min={1}
+                value={form.recorded_speed_kph}
+                onChange={(e) => setForm({ ...form, recorded_speed_kph: e.target.value })}
+              />
+            </label>
+          ) : (
+            <label>
+              Seconds after light turned red
+              <input
+                type="number"
+                required
+                min={0.1}
+                step={0.1}
+                value={form.seconds_after_red}
+                onChange={(e) => setForm({ ...form, seconds_after_red: e.target.value })}
+              />
+            </label>
+          )}
           <label>
-            Recorded speed (km/h)
+            Evidence (photo/video) — required
             <input
-              type="number"
+              type="file"
               required
-              min={1}
-              value={form.recorded_speed_kph}
-              onChange={(e) => setForm({ ...form, recorded_speed_kph: e.target.value })}
+              accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
+              onChange={(e) => setEvidenceFile(e.target.files?.[0] ?? null)}
             />
           </label>
           <button className="btn btn-primary" type="submit" disabled={submitting}>
@@ -161,7 +243,7 @@ export default function Violations() {
         </select>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="">All statuses</option>
-          {STATUSES.map((s) => (
+          {STATUS_FILTERS.map((s) => (
             <option key={s} value={s}>
               {s}
             </option>
@@ -175,39 +257,53 @@ export default function Violations() {
         <table className="data-table">
           <thead>
             <tr>
+              <th>Type</th>
               <th>Plate</th>
               <th>Zone</th>
-              <th>Speed</th>
-              <th>Over by</th>
+              <th>Reading</th>
               <th>Severity</th>
               <th>Fine</th>
+              <th>Evidence</th>
               <th>Status</th>
               <th>Recorded</th>
+              <th />
             </tr>
           </thead>
           <tbody>
             {violations.map((v) => (
               <tr key={v.id}>
+                <td>
+                  <span className="badge badge-neutral">{v.violation_type === "red_light" ? "Red light" : "Speed"}</span>
+                </td>
                 <td className="mono">{v.plate_number}</td>
                 <td>{v.zone_name}</td>
                 <td>
-                  {v.recorded_speed_kph} / {v.speed_limit_kph} km/h
+                  {v.violation_type === "speed"
+                    ? `${v.recorded_speed_kph} / ${v.speed_limit_kph} km/h`
+                    : `${v.seconds_after_red}s after red`}
                 </td>
-                <td>+{v.over_limit_kph} km/h</td>
                 <td>
                   <span className={`badge badge-${v.severity}`}>{v.severity}</span>
                 </td>
                 <td>{currency(v.fine_amount)}</td>
+                <td>{v.evidence_count > 0 ? `${v.evidence_count} file(s)` : "— none (legacy)"}</td>
                 <td>
-                  <select value={v.status} onChange={(e) => updateStatus(v.id, e.target.value)}>
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                  <span className={`badge badge-neutral`}>{v.status}</span>
+                  {v.status === "pending" && (
+                    <>
+                      {" "}
+                      <Link to="/review">review</Link>
+                    </>
+                  )}
                 </td>
                 <td>{new Date(v.recorded_at).toLocaleDateString()}</td>
+                <td>
+                  {v.status === "issued" && (
+                    <button className="btn btn-ghost small" onClick={() => markPaid(v.id)}>
+                      Mark paid
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

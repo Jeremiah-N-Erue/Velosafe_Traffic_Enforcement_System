@@ -11,7 +11,7 @@ interface Zone {
   active: number;
 }
 
-const ZONE_TYPES = ["school", "residential", "highway", "commercial", "construction"];
+const ZONE_TYPES = ["school", "residential", "highway", "commercial", "construction", "intersection"];
 
 export default function Zones() {
   const { user } = useAuth();

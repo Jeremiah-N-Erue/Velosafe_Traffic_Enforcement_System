@@ -9,12 +9,15 @@ import { violationsRouter } from "./routes/violations.routes";
 import { incidentsRouter } from "./routes/incidents.routes";
 import { dashboardRouter } from "./routes/dashboard.routes";
 import { chatRouter } from "./routes/chat.routes";
+import { ingestRouter } from "./routes/ingest.routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 
 const app = express();
 
 app.use(cors({ origin: config.corsOrigin }));
-app.use(express.json());
+// Raised from Express's 100kb default to accommodate base64-encoded evidence photos/videos
+// submitted as part of the JSON body.
+app.use(express.json({ limit: "20mb" }));
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", service: "velosafe-backend", time: new Date().toISOString() });
@@ -27,6 +30,7 @@ app.use("/api/violations", violationsRouter);
 app.use("/api/incidents", incidentsRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/chat", chatRouter);
+app.use("/api/ingest", ingestRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

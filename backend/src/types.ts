@@ -6,10 +6,11 @@ export interface User {
   password_hash: string;
   role: Role;
   display_name: string;
+  can_override_reviews: number;
   created_at: string;
 }
 
-export type ZoneType = "school" | "residential" | "highway" | "commercial" | "construction";
+export type ZoneType = "school" | "residential" | "highway" | "commercial" | "construction" | "intersection";
 
 export interface Zone {
   id: number;
@@ -36,19 +37,54 @@ export interface Vehicle {
 
 export type ViolationSeverity = "minor" | "moderate" | "severe" | "extreme";
 export type ViolationStatus = "pending" | "issued" | "paid" | "disputed" | "dismissed";
+export type ViolationType = "speed" | "red_light";
 
 export interface Violation {
   id: number;
   vehicle_id: number;
   zone_id: number;
-  recorded_speed_kph: number;
-  speed_limit_kph: number;
-  over_limit_kph: number;
+  violation_type: ViolationType;
+  recorded_speed_kph: number | null;
+  speed_limit_kph: number | null;
+  over_limit_kph: number | null;
+  seconds_after_red: number | null;
   severity: ViolationSeverity;
   fine_amount: number;
   status: ViolationStatus;
   recorded_at: string;
   notes: string | null;
+  source_device_id: number | null;
+}
+
+export interface ViolationEvidence {
+  id: number;
+  violation_id: number;
+  file_path: string;
+  mime_type: string;
+  file_hash: string;
+  uploaded_by: number | null;
+  uploaded_at: string;
+}
+
+export interface ViolationStatusHistoryEntry {
+  id: number;
+  violation_id: number;
+  from_status: ViolationStatus | null;
+  to_status: ViolationStatus;
+  changed_by: number | null;
+  is_override: number;
+  note: string | null;
+  changed_at: string;
+}
+
+export interface Device {
+  id: number;
+  label: string;
+  device_type: string;
+  api_key_hash: string;
+  active: number;
+  created_at: string;
+  last_used_at: string | null;
 }
 
 export type IncidentType = "collision" | "hazard" | "road_closure" | "breakdown" | "other";

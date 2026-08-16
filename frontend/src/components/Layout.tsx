@@ -3,16 +3,26 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import ChatWidget from "./ChatWidget";
 
-const NAV_ITEMS = [
+interface NavItem {
+  to: string;
+  label: string;
+  end?: boolean;
+}
+
+const NAV_ITEMS: NavItem[] = [
   { to: "/", label: "Dashboard", end: true },
   { to: "/violations", label: "Violations" },
+  { to: "/review", label: "Review Queue" },
   { to: "/zones", label: "Zones" },
   { to: "/vehicles", label: "Vehicles" },
   { to: "/incidents", label: "Incidents" },
 ];
 
+const ADMIN_NAV_ITEMS: NavItem[] = [{ to: "/oversight", label: "Admin Oversight" }];
+
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
+  const navItems = user?.role === "admin" ? [...NAV_ITEMS, ...ADMIN_NAV_ITEMS] : NAV_ITEMS;
 
   return (
     <div className="app-shell">
@@ -22,7 +32,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <span>VeloSafe</span>
         </div>
         <nav className="sidebar-nav">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
