@@ -24,6 +24,18 @@ export interface Zone {
   created_at: string;
 }
 
+export type ZoneHistoryAction = "created" | "updated" | "deleted";
+
+export interface ZoneHistoryEntry {
+  id: number;
+  zone_id: number;
+  action: ZoneHistoryAction;
+  before_data: string | null;
+  after_data: string | null;
+  changed_by: number | null;
+  changed_at: string;
+}
+
 export interface Vehicle {
   id: number;
   plate_number: string;

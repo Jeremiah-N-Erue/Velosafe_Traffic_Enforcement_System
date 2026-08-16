@@ -9,7 +9,7 @@ export const zoneSchema = z.object({
   name: z.string().min(1).max(120),
   road_name: z.string().min(1).max(120),
   speed_limit_kph: z.number().int().min(5).max(160),
-  zone_type: z.enum(["school", "residential", "highway", "commercial", "construction"]),
+  zone_type: z.enum(["school", "residential", "highway", "commercial", "construction", "intersection"]),
   latitude: z.number().min(-90).max(90).nullable().optional(),
   longitude: z.number().min(-180).max(180).nullable().optional(),
   active: z.boolean().optional(),

@@ -30,6 +30,22 @@ CREATE TABLE IF NOT EXISTS zones (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Append-only history of every create/update/delete on a zone (e.g. speed limit changes).
+-- Deliberately NOT a foreign key to zones(id) -- a deleted zone's history must survive the
+-- zone itself, so before_data/after_data snapshots (JSON) are the source of truth, not a join.
+-- No DELETE endpoint is exposed for this table anywhere in the app: customers (admins and
+-- operators alike) cannot purge it. Only VeloSafe (the vendor) can remove entries, done directly
+-- against the database on a customer's explicit support request -- never as a self-service action.
+CREATE TABLE IF NOT EXISTS zone_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  zone_id INTEGER NOT NULL,
+  action TEXT NOT NULL CHECK (action IN ('created', 'updated', 'deleted')),
+  before_data TEXT,
+  after_data TEXT,
+  changed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  changed_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- Devices (radar/lidar units, speed cameras, red-light cameras) that submit violations
 -- automatically through the ingestion API. Vendor-agnostic by design: any device that can call
 -- the ingestion endpoint with the standard payload works, regardless of manufacturer. Devices
@@ -125,4 +141,5 @@ CREATE INDEX IF NOT EXISTS idx_incidents_zone ON incidents(zone_id);
 CREATE INDEX IF NOT EXISTS idx_incidents_status ON incidents(status);
 CREATE INDEX IF NOT EXISTS idx_evidence_violation ON violation_evidence(violation_id);
 CREATE INDEX IF NOT EXISTS idx_status_history_violation ON violation_status_history(violation_id);
+CREATE INDEX IF NOT EXISTS idx_zone_history_zone ON zone_history(zone_id);
 `;

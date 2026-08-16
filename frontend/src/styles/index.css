@@ -389,6 +389,10 @@ select:focus {
   padding: 4px 8px;
   font-size: 12px;
 }
+.table-actions {
+  display: flex;
+  gap: 8px;
+}
 .mono {
   font-family: "SF Mono", "Roboto Mono", Menlo, monospace;
   letter-spacing: 0.02em;

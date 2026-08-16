@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 
@@ -13,6 +14,8 @@ interface Zone {
 
 const ZONE_TYPES = ["school", "residential", "highway", "commercial", "construction", "intersection"];
 
+const emptyForm = { name: "", road_name: "", speed_limit_kph: 50, zone_type: "residential", active: true };
+
 export default function Zones() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
@@ -20,7 +23,8 @@ export default function Zones() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", road_name: "", speed_limit_kph: 50, zone_type: "residential" });
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
 
   function load() {
@@ -34,23 +38,53 @@ export default function Zones() {
 
   useEffect(load, []);
 
-  async function handleCreate(e: FormEvent) {
+  function openCreateForm() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setError(null);
+    setFormOpen(true);
+  }
+
+  function openEditForm(zone: Zone) {
+    setEditingId(zone.id);
+    setForm({
+      name: zone.name,
+      road_name: zone.road_name,
+      speed_limit_kph: zone.speed_limit_kph,
+      zone_type: zone.zone_type,
+      active: !!zone.active,
+    });
+    setError(null);
+    setFormOpen(true);
+  }
+
+  function closeForm() {
+    setFormOpen(false);
+    setEditingId(null);
+    setForm(emptyForm);
+  }
+
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
     try {
-      await api.post("/zones", form);
-      setForm({ name: "", road_name: "", speed_limit_kph: 50, zone_type: "residential" });
-      setFormOpen(false);
+      if (editingId) {
+        await api.patch(`/zones/${editingId}`, form);
+      } else {
+        await api.post("/zones", form);
+      }
+      closeForm();
       load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Couldn't create zone.");
+      setError(err instanceof ApiError ? err.message : editingId ? "Couldn't update zone." : "Couldn't create zone.");
     } finally {
       setSubmitting(false);
     }
   }
 
   async function handleDelete(id: number) {
+    setError(null);
     try {
       await api.delete(`/zones/${id}`);
       load();
@@ -64,10 +98,13 @@ export default function Zones() {
       <div className="page-header">
         <div>
           <h1>Speed Zones</h1>
-          <p className="page-subtitle">Posted limits and zone metadata</p>
+          <p className="page-subtitle">
+            Posted limits and zone metadata. Every create, edit, and delete is recorded — see the{" "}
+            {isAdmin ? <Link to="/oversight">Zone Change Log</Link> : "Zone Change Log (admin oversight)"}.
+          </p>
         </div>
         {isAdmin && (
-          <button className="btn btn-primary" onClick={() => setFormOpen((v) => !v)}>
+          <button className="btn btn-primary" onClick={() => (formOpen ? closeForm() : openCreateForm())}>
             {formOpen ? "Cancel" : "+ New Zone"}
           </button>
         )}
@@ -80,7 +117,7 @@ export default function Zones() {
       {error && <div className="form-error">{error}</div>}
 
       {formOpen && isAdmin && (
-        <form className="inline-form" onSubmit={handleCreate}>
+        <form className="inline-form" onSubmit={handleSubmit}>
           <label>
             Name
             <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -114,8 +151,20 @@ export default function Zones() {
               ))}
             </select>
           </label>
+          {editingId && (
+            <label>
+              Status
+              <select
+                value={form.active ? "active" : "inactive"}
+                onChange={(e) => setForm({ ...form, active: e.target.value === "active" })}
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </label>
+          )}
           <button className="btn btn-primary" type="submit" disabled={submitting}>
-            {submitting ? "Saving…" : "Save zone"}
+            {submitting ? "Saving…" : editingId ? "Save changes" : "Save zone"}
           </button>
         </form>
       )}
@@ -145,7 +194,10 @@ export default function Zones() {
                 <td>{z.speed_limit_kph} km/h</td>
                 <td>{z.active ? "Active" : "Inactive"}</td>
                 {isAdmin && (
-                  <td>
+                  <td className="table-actions">
+                    <button className="btn btn-ghost small" onClick={() => openEditForm(z)}>
+                      Edit
+                    </button>
                     <button className="btn btn-ghost small" onClick={() => handleDelete(z.id)}>
                       Delete
                     </button>
