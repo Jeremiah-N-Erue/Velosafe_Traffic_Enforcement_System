@@ -1,5 +1,10 @@
 # VeloSafe — Traffic Enforcement System
 
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-end--to--end-3178c6.svg)
+![React](https://img.shields.io/badge/React-18-61dafb.svg)
+![Node](https://img.shields.io/badge/Node.js-Express-339933.svg)
+
 A full-stack traffic safety monitoring platform: speed zones with posted limits, automatic
 speed-violation detection (severity + fine calculated from how far over the limit a reading is),
 a vehicle registry, incident logging (collisions, hazards, road closures), an admin dashboard
@@ -7,6 +12,19 @@ with live aggregate stats, and a built-in AI assistant chat widget that answers 
 questions about the live data.
 
 The app ships pre-loaded with realistic seed data, so it's fully demo-able the moment it's running.
+
+![VeloSafe dashboard](docs/screenshots/dashboard.jpg)
+
+## What it does
+
+- **Speed zones** — define road segments with posted limits (school, residential, highway, commercial)
+- **Automatic violation detection** — submit a reading, get back severity and fine amount calculated from how far over the zone's limit it was
+- **Vehicle registry** — track plates, make/model, owners
+- **Incident logging** — collisions, hazards, and road closures with severity and status tracking
+- **Evidence & audit trail** — attach evidence to violations, review queue, admin-only record management with a change log
+- **Admin dashboard** — live aggregate stats, severity breakdowns, top zones by violation count
+- **AI assistant chat widget** — ask it questions in plain English ("how many violations this week?", "what's the speed limit on Elm Avenue?") and it answers from the live database, no external API key required
+- **Role-based access** — admin vs. operator accounts, JWT-authenticated
 
 ## Stack
 
@@ -40,7 +58,8 @@ velosafe/
 
 ## Getting started
 
-Requires Node.js 18+.
+Requires Node.js 18+. (Note: `better-sqlite3` needs a prebuilt binary for your Node version —
+if `npm install` tries to compile from source and fails, switch to a Node 18/20/22 LTS release.)
 
 ### 1. Backend
 
@@ -140,3 +159,7 @@ This is a demo-ready prototype. Before deploying for real enforcement use, at mi
 `JWT_SECRET`, put the SQLite file on persistent storage (or migrate to Postgres for multi-instance
 deployments), add rate limiting on `/api/auth/login`, and add HTTPS termination in front of the
 API.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
